@@ -48,8 +48,14 @@ pipeline {
         sh '''
           set -euxo pipefail
           . .venv/bin/activate
-          pytest -q
+          mkdir -p reports
+          pytest -q --junitxml=reports/junit.xml
         '''
+      }
+      post {
+        always {
+          junit 'reports/junit.xml'
+        }
       }
     }
   }
