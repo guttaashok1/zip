@@ -1,5 +1,5 @@
+import math
 def add(a: int, b: int) -> int:
-    unused_var = "test1 "
     return a + b
 
 def subtract(a: int, b: int) -> int:
