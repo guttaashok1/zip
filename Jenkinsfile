@@ -6,6 +6,11 @@ pipeline {
     disableConcurrentBuilds()
   }
 
+  environment {
+    VENV = ".venv"
+    REPORTS_DIR = "reports"
+  }
+
   stages {
     stage('Checkout') {
       steps { checkout scm }
@@ -16,19 +21,17 @@ pipeline {
         sh '''
           set -euxo pipefail
 
-          # Ensure python3 exists (macOS)
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
           which python3
           python3 --version
 
-          # Create virtualenv
           python3 -m venv .venv
 
-          # Activate venv
           . .venv/bin/activate
-
-          # Upgrade pip + install tools
           python -m pip install --upgrade pip
-          pip install pylint pytest
+
+          pip install "pylint==3.2.7" "pytest==8.3.2"
         '''
       }
     }
@@ -38,8 +41,15 @@ pipeline {
         sh '''
           set -euxo pipefail
           . .venv/bin/activate
-          pylint src
+
+          mkdir -p reports
+          pylint src | tee reports/pylint.txt
         '''
+      }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/pylint.txt', fingerprint: true
+        }
       }
     }
 
@@ -48,6 +58,7 @@ pipeline {
         sh '''
           set -euxo pipefail
           . .venv/bin/activate
+
           mkdir -p reports
           pytest -q --junitxml=reports/junit.xml
         '''
@@ -55,8 +66,18 @@ pipeline {
       post {
         always {
           junit 'reports/junit.xml'
+          archiveArtifacts artifacts: 'reports/junit.xml', fingerprint: true
         }
       }
+    }
+  }
+
+  post {
+    always {
+      script {
+        currentBuild.description = "Branch: ${env.BRANCH_NAME}  PR: ${env.CHANGE_ID ?: '-'}"
+      }
+      cleanWs()
     }
   }
 }
