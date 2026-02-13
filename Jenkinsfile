@@ -42,26 +42,16 @@ pipeline {
           set -euxo pipefail
           . .venv/bin/activate
 
-          echo "BRANCH_NAME=${BRANCH_NAME}  CHANGE_ID=${CHANGE_ID:-}"
-          git rev-parse HEAD
-          git log -1 --oneline
-
-          # Prove the file content Jenkins is linting
-          ls -la src
-          grep -n "unused_var" -n src/common_library.py || true
-          sed -n '1,120p' src/common_library.py
-
-          # Prove what config pylint is using
-          ls -la .pylintrc
-          pylint --version
-
           mkdir -p reports
-          pylint --rcfile=.pylintrc -rn -sn src/common_library.py | tee reports/pylint.txt
-          exit ${PIPESTATUS[0]}
+          pylint src | tee reports/pylint.txt
         '''
       }
+      post {
+        always {
+          archiveArtifacts artifacts: 'reports/pylint.txt', fingerprint: true
+        }
+      }
     }
-
 
     stage('Unit Tests (pytest)') {
       steps {
