@@ -1,5 +1,4 @@
-def add(a: int, b: int) -> int:
-    unused_var = "test"
+def add(a, b):
     return a + b
 
 def subtract(a: int, b: int) -> int:
